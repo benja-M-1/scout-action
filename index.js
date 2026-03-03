@@ -17,9 +17,9 @@ function readVersionFile() {
 async function downloadRelease(version) {
     const octokit = github.getOctokit(core.getInput('github-token'))
     const release = await octokit.rest.repos.getReleaseByTag({
-        owner: 'docker',
+        owner: 'benja-M-1',
         repo: 'scout-action',
-        tag: `v${version}`,
+        tag: `${version}`,
     })
 
     const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`)
