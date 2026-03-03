@@ -9,6 +9,9 @@ inputs:
     description: |
       Command(s) to run.
       Use a comma separated list to run several commands on the same set of parameters, for instance quickview,compare
+  verions:
+    required: false
+    description: Versions of Docker Scout to use, if not set the latest version will be used.
   debug:
     required: false
     description: Debug
@@ -172,8 +175,8 @@ inputs:
     required: false
 
 runs:
-  using: node20
-  main: index.js
+  using: node24
+  main: dist/index.js
 
 branding:
   icon: shield

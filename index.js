@@ -1,50 +1,90 @@
+const core = require('@actions/core')
+const github = require('@actions/github')
+const tc = require('@actions/tool-cache')
+
 const childProcess = require('child_process')
+const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const process = require('process')
 
-const BinaryName = "docker-scout-action"
+function readVersionFile() {
+    const actionRoot = path.join(path.dirname(process.argv[1]), '..')
+    const versionFile = path.join(actionRoot, 'version')
+    return fs.readFileSync(versionFile, 'utf8').trim()
+}
 
-function chooseBinary() {
+async function downloadRelease(version) {
+    const octokit = github.getOctokit(core.getInput('github-token'))
+    const release = await octokit.rest.repos.getReleaseByTag({
+        owner: 'docker',
+        repo: 'scout-action',
+        tag: `v${version}`,
+    })
+
+    const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`)
+    fs.mkdirSync(downloadDir, { recursive: true })
+
+    for (const asset of release.data.assets) {
+        core.info(`Downloading ${asset.name}`)
+        const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
+            accept: 'application/octet-stream',
+        })
+        fs.renameSync(downloadPath, path.join(downloadDir, asset.name))
+    }
+
+    return downloadDir
+}
+
+function chooseBinary(dir) {
     const platform = os.platform()
     const arch = os.arch()
 
     if (platform === 'darwin' && arch === 'x64') {
-        return `${BinaryName}_darwin_amd64`
+        return path.join(dir, 'docker-scout-action_darwin_amd64')
     }
     if (platform === 'darwin' && arch === 'arm64') {
-        return `${BinaryName}_darwin_arm64`
+        return path.join(dir, 'docker-scout-action_darwin_arm64')
     }
     if (platform === 'linux' && arch === 'x64') {
-        return `${BinaryName}_linux_amd64`
+        return path.join(dir, 'docker-scout-action_linux_amd64')
     }
     if (platform === 'linux' && arch === 'arm64') {
-        return `${BinaryName}_linux_arm64`
+        return path.join(dir, 'docker-scout-action_linux_arm64')
     }
     if (platform === 'win32' && arch === 'x64') {
-        return `${BinaryName}_windows_amd64.exe`
+        return path.join(dir, 'docker-scout-action_windows_amd64.exe')
     }
     if (platform === 'win32' && arch === 'arm64') {
-        return `${BinaryName}_windows_arm64.exe`
+        return path.join(dir, 'docker-scout-action_windows_arm64.exe')
     }
 
-    console.error(`Unsupported platform (${platform}) and architecture (${arch})`)
-    process.exit(1)
-
-    return `${BinaryName}_${platform}_${arch}`
+    throw new Error(`Unsupported platform (${platform}) and architecture (${arch})`)
 }
 
-function main() {
-    const binary = chooseBinary()
-    const mainScript = path.join(__dirname, "dist", binary);
-    const spawnSyncReturns = childProcess.spawnSync(mainScript, { stdio: 'inherit' })
-    const status = spawnSyncReturns.status
-    if (typeof status === 'number') {
-        process.exit(status)
+async function main() {
+    // 1. Read the version from the version file
+    const version = readVersionFile()
+
+    // 2. Download the release artifacts
+    const dir = await downloadRelease(version)
+
+    // 3. Pick the right binary for this platform
+    const binaryPath = chooseBinary(dir)
+
+    if (!fs.existsSync(binaryPath)) {
+        throw new Error(`Binary not found at ${binaryPath}`)
+    }
+    fs.chmodSync(binaryPath, 0o755)
+
+    // 4. Execute it
+    const result = childProcess.spawnSync(binaryPath, { stdio: 'inherit' })
+    if (typeof result.status === 'number') {
+        process.exit(result.status)
     }
     process.exit(1)
 }
 
-if (require.main === module) {
-    main()
-}
+main().catch((error) => {
+    core.setFailed(error.message)
+})
