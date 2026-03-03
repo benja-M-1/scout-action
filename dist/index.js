@@ -33910,22 +33910,28 @@ function requireScoutAction () {
 	function readVersionFile() {
 	    const actionRoot = path.join(path.dirname(process.argv[1]), '..');
 	    const versionFile = path.join(actionRoot, 'version');
-	    return fs.readFileSync(versionFile, 'utf8').trim()
+	    const version = fs.readFileSync(versionFile, 'utf8').trim();
+
+	    core.info(`Scout Action version from version file: ${version}`);
+
+	    return version
 	}
 
 	async function downloadRelease(version) {
 	    const octokit = github.getOctokit(core.getInput('github-token'));
 	    const release = await octokit.rest.repos.getReleaseByTag({
-	        owner: 'docker',
+	        owner: 'benja-M-1',
 	        repo: 'scout-action',
-	        tag: `v${version}`,
+	        tag: `${version}`,
 	    });
 
 	    const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`);
 	    fs.mkdirSync(downloadDir, { recursive: true });
 
+	    core.info(`Found release ${release.data.tag_name} with ${release.data.assets.length} assets`);
+
 	    for (const asset of release.data.assets) {
-	        core.info(`Downloading ${asset.name}`);
+	        core.info(`Downloading asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`);
 	        const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
 	            accept: 'application/octet-stream',
 	        });
@@ -33974,7 +33980,10 @@ function requireScoutAction () {
 	    if (!fs.existsSync(binaryPath)) {
 	        throw new Error(`Binary not found at ${binaryPath}`)
 	    }
+
 	    fs.chmodSync(binaryPath, 0o755);
+
+	    core.info(`Using binary: ${binaryPath}`);
 
 	    // 4. Execute it
 	    const result = childProcess.spawnSync(binaryPath, { stdio: 'inherit' });
