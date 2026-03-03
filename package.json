@@ -2,7 +2,8 @@
   "name": "scout-action",
   "version": "1.0.0",
   "description": "GitHub Action to run the Docker Scout CLI as part of your workflows.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "build": "rollup --config rollup.config.js"
   },
