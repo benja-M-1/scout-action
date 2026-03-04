@@ -33909,11 +33909,19 @@ function requireSrc () {
 
 	async function downloadRelease(version) {
 	    const octokit = github.getOctokit(core.getInput('github-token'));
-	    const release = await octokit.rest.repos.getReleaseByTag({
-	        owner: 'benja-M-1',
-	        repo: 'scout-action',
-	        tag: `${version}`,
-	    });
+
+	    var release;
+	    try {
+	        release = await octokit.rest.repos.getReleaseByTag({
+	            owner: 'benja-M-1',
+	            repo: 'scout-action',
+	            tag: `${version}`,
+	        });
+	    } catch (e) {
+	        core.info(`Failed to find release for version ${version}`);
+
+	        throw e
+	    }
 
 	    const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`);
 	    fs.mkdirSync(downloadDir, { recursive: true });
@@ -33959,8 +33967,6 @@ function requireSrc () {
 
 	async function main() {
 	    const version = "1.20.0";
-
-	    core.info(`Using version ${version}`);
 
 	    const dir = await downloadRelease(version);
 

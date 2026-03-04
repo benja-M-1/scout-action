@@ -10,11 +10,19 @@ const process = require('process')
 
 async function downloadRelease(version) {
     const octokit = github.getOctokit(core.getInput('github-token'))
-    const release = await octokit.rest.repos.getReleaseByTag({
-        owner: 'benja-M-1',
-        repo: 'scout-action',
-        tag: `${version}`,
-    })
+
+    var release;
+    try {
+        release = await octokit.rest.repos.getReleaseByTag({
+            owner: 'benja-M-1',
+            repo: 'scout-action',
+            tag: `${version}`,
+        })
+    } catch (e) {
+        core.info(`Failed to find release for version ${version}`)
+
+        throw e
+    }
 
     const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`)
     fs.mkdirSync(downloadDir, { recursive: true })
@@ -60,8 +68,6 @@ function chooseBinary(dir) {
 
 async function main() {
     const version = "__VERSION__"
-
-    core.info(`Using version ${version}`)
 
     const dir = await downloadRelease(version)
 
