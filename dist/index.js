@@ -64,7 +64,7 @@ function getAugmentedNamespace(n) {
 	return a;
 }
 
-var scoutAction = {};
+var src = {};
 
 var core = {};
 
@@ -33892,11 +33892,11 @@ function requireToolCache () {
 	return toolCache;
 }
 
-var hasRequiredScoutAction;
+var hasRequiredSrc;
 
-function requireScoutAction () {
-	if (hasRequiredScoutAction) return scoutAction;
-	hasRequiredScoutAction = 1;
+function requireSrc () {
+	if (hasRequiredSrc) return src;
+	hasRequiredSrc = 1;
 	const core = requireCore();
 	const github = requireGithub();
 	const tc = requireToolCache();
@@ -33906,16 +33906,6 @@ function requireScoutAction () {
 	const os = require$$0;
 	const path = require$$1$5;
 	const process = require$$7$1;
-
-	function readVersionFile() {
-	    const actionRoot = path.join(path.dirname(process.argv[1]), '..');
-	    const versionFile = path.join(actionRoot, 'version');
-	    const version = fs.readFileSync(versionFile, 'utf8').trim();
-
-	    core.info(`Scout Action version from version file: ${version}`);
-
-	    return version
-	}
 
 	async function downloadRelease(version) {
 	    const octokit = github.getOctokit(core.getInput('github-token'));
@@ -33968,13 +33958,12 @@ function requireScoutAction () {
 	}
 
 	async function main() {
-	    // 1. Read the version from the version file
-	    const version = readVersionFile();
+	    const version = "1.20.0";
 
-	    // 2. Download the release artifacts
+	    core.info(`Using version ${version}`);
+
 	    const dir = await downloadRelease(version);
 
-	    // 3. Pick the right binary for this platform
 	    const binaryPath = chooseBinary(dir);
 
 	    if (!fs.existsSync(binaryPath)) {
@@ -33985,7 +33974,6 @@ function requireScoutAction () {
 
 	    core.info(`Using binary: ${binaryPath}`);
 
-	    // 4. Execute it
 	    const result = childProcess.spawnSync(binaryPath, { stdio: 'inherit' });
 	    if (typeof result.status === 'number') {
 	        process.exit(result.status);
@@ -33996,11 +33984,10 @@ function requireScoutAction () {
 	main().catch((error) => {
 	    core.setFailed(error.message);
 	});
-	return scoutAction;
+	return src;
 }
 
-var scoutActionExports = requireScoutAction();
-var index = /*@__PURE__*/getDefaultExportFromCjs(scoutActionExports);
+var srcExports = requireSrc();
+var index = /*@__PURE__*/getDefaultExportFromCjs(srcExports);
 
 export { index as default };
-//# sourceMappingURL=index.js.map
