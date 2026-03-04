@@ -27,20 +27,13 @@ async function downloadRelease(version, binaryName) {
     const downloadDir = path.join(os.tmpdir(), `scout-action-${version}`)
     fs.mkdirSync(downloadDir, { recursive: true })
 
-    core.info(`Found release ${release.data.tag_name} with ${release.data.assets.length} assets`)
-
     for (const asset of release.data.assets) {
         if (asset.name === binaryName) {
+            let binaryPath = path.join(downloadDir, asset.name);
             core.info(`Downloading asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`)
-            const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
+            return await tc.downloadTool(asset.url, binaryPath, undefined, {
                 accept: 'application/octet-stream',
             })
-
-            let binaryPath = path.join(downloadDir, asset.name);
-
-            fs.renameSync(downloadPath, binaryPath)
-
-            return binaryPath
         }
     }
 
