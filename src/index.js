@@ -30,19 +30,21 @@ async function downloadRelease(version, binaryName) {
     core.info(`Found release ${release.data.tag_name} with ${release.data.assets.length} assets`)
 
     for (const asset of release.data.assets) {
-        if (asset.name !== binaryName) {
-            core.info(`Skipping asset: ${asset.name}`)
-            continue
-        }
+        if (asset.name === binaryName) {
+            core.info(`Downloading asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`)
+            const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
+                accept: 'application/octet-stream',
+            })
 
-        core.info(`Downloading asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`)
-        const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
-            accept: 'application/octet-stream',
-        })
-        fs.renameSync(downloadPath, path.join(downloadDir, asset.name))
+            let binaryPath = path.join(downloadDir, asset.name);
+
+            fs.renameSync(downloadPath, binaryPath)
+
+            return binaryPath
+        }
     }
 
-    return downloadDir
+    throw new Error(`Binary ${binaryName} not found in release ${version}`)
 }
 
 function getBinaryName() {
