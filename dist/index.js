@@ -33907,7 +33907,7 @@ function requireSrc () {
 	const path = require$$1$5;
 	const process = require$$7$1;
 
-	async function downloadRelease(version) {
+	async function downloadRelease(version, binaryName) {
 	    const octokit = github.getOctokit(core.getInput('github-token'));
 
 	    var release;
@@ -33929,6 +33929,11 @@ function requireSrc () {
 	    core.info(`Found release ${release.data.tag_name} with ${release.data.assets.length} assets`);
 
 	    for (const asset of release.data.assets) {
+	        if (asset.name !== binaryName) {
+	            core.info(`Skipping asset: ${asset.name}`);
+	            continue
+	        }
+
 	        core.info(`Downloading asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`);
 	        const downloadPath = await tc.downloadTool(asset.url, undefined, undefined, {
 	            accept: 'application/octet-stream',
@@ -33939,27 +33944,27 @@ function requireSrc () {
 	    return downloadDir
 	}
 
-	function chooseBinary(dir) {
+	function getBinaryName() {
 	    const platform = os.platform();
 	    const arch = os.arch();
 
 	    if (platform === 'darwin' && arch === 'x64') {
-	        return path.join(dir, 'docker-scout-action_darwin_amd64')
+	        return 'docker-scout-action_darwin_amd64'
 	    }
 	    if (platform === 'darwin' && arch === 'arm64') {
-	        return path.join(dir, 'docker-scout-action_darwin_arm64')
+	        return 'docker-scout-action_darwin_arm64'
 	    }
 	    if (platform === 'linux' && arch === 'x64') {
-	        return path.join(dir, 'docker-scout-action_linux_amd64')
+	        return 'docker-scout-action_linux_amd64'
 	    }
 	    if (platform === 'linux' && arch === 'arm64') {
-	        return path.join(dir, 'docker-scout-action_linux_arm64')
+	        return 'docker-scout-action_linux_arm64'
 	    }
 	    if (platform === 'win32' && arch === 'x64') {
-	        return path.join(dir, 'docker-scout-action_windows_amd64.exe')
+	        return 'docker-scout-action_windows_amd64.exe'
 	    }
 	    if (platform === 'win32' && arch === 'arm64') {
-	        return path.join(dir, 'docker-scout-action_windows_arm64.exe')
+	        return 'docker-scout-action_windows_arm64.exe'
 	    }
 
 	    throw new Error(`Unsupported platform (${platform}) and architecture (${arch})`)
@@ -33968,9 +33973,7 @@ function requireSrc () {
 	async function main() {
 	    const version = "1.20.0";
 
-	    const dir = await downloadRelease(version);
-
-	    const binaryPath = chooseBinary(dir);
+	    const binaryPath = await downloadRelease(version, getBinaryName());
 
 	    if (!fs.existsSync(binaryPath)) {
 	        throw new Error(`Binary not found at ${binaryPath}`)
